@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
-  Upload, 
-  File as FileIcon, 
+  File as FileIcon,
   Image, 
   FileText, 
   Archive,
@@ -14,19 +13,29 @@ import {
   RefreshCw,
   Upload as UploadIcon,
   X,
-  Check
+  Check,
+  ChevronDown,
+  Globe
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { filesAPI } from '../api/api';
+import translations from '../i18n/translations';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
+  const { language, setLanguage } = useLanguage();
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState([]);
   const [dragActive, setDragActive] = useState(false);
+  const [sortBy, setSortBy] = useState('date-desc');
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const fileInputRef = useRef(null);
+
+  const t = translations[language];
 
   useEffect(() => {
     fetchFiles();
@@ -99,7 +108,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleDownload = async (id, fileName) => {
+  const handleDownload = async (id) => {
     try {
       const response = await filesAPI.download(id);
       const { url } = response.data;
@@ -159,6 +168,31 @@ const Dashboard = () => {
     });
   };
 
+  const getSortedFiles = () => {
+    const filesCopy = [...files];
+
+    switch(sortBy) {
+      case 'date-desc':
+        return filesCopy.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      case 'date-asc':
+        return filesCopy.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      case 'size-desc':
+        return filesCopy.sort((a, b) => b.size - a.size);
+      case 'size-asc':
+        return filesCopy.sort((a, b) => a.size - b.size);
+      case 'name-asc':
+        return filesCopy.sort((a, b) => a.name.localeCompare(b.name));
+      case 'name-desc':
+        return filesCopy.sort((a, b) => b.name.localeCompare(a.name));
+      default:
+        return filesCopy;
+    }
+  };
+
+  const getSortLabel = () => {
+    return t.sortOptions[sortBy];
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
       {/* Header */}
@@ -169,10 +203,45 @@ const Dashboard = () => {
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center mr-3">
                 <FileIcon className="w-6 h-6 text-white" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">Dropbox S3</h1>
+              <h1 className="text-xl font-bold text-gray-900">{t.header.title}</h1>
             </div>
             
             <div className="flex items-center space-x-4">
+              {/* Language Selector */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+                >
+                  <Globe className="w-4 h-4" />
+                  <span className="font-medium">{language.toUpperCase()}</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+
+                {showLanguageMenu && (
+                  <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-lg shadow-lg z-20">
+                    {['en', 'ru', 'uz'].map(lang => (
+                      <button
+                        key={lang}
+                        onClick={() => {
+                          setLanguage(lang);
+                          setShowLanguageMenu(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${
+                          language === lang 
+                            ? 'bg-blue-100 text-blue-600 font-medium' 
+                            : 'text-gray-700'
+                        }`}
+                      >
+                        {lang === 'en' && 'English'}
+                        {lang === 'ru' && 'Русский'}
+                        {lang === 'uz' && 'O\'zbekcha'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <User className="w-4 h-4" />
                 <span className="font-medium">{user?.username}</span>
@@ -182,7 +251,7 @@ const Dashboard = () => {
                 className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Logout</span>
+                <span>{t.header.logout}</span>
               </button>
             </div>
           </div>
@@ -213,24 +282,24 @@ const Dashboard = () => {
             
             <UploadIcon className="w-16 h-16 mx-auto mb-4 text-blue-500" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Upload Files
+              {t.upload.title}
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Drag and drop files here, or click to browse
+              {t.upload.description}
             </p>
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
             >
-              {uploading ? 'Uploading...' : 'Choose Files'}
+              {uploading ? t.upload.uploading : t.upload.button}
             </button>
           </div>
 
           {/* Upload Progress */}
           {uploadProgress.length > 0 && (
             <div className="mt-4 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-              <h4 className="font-medium text-gray-900 mb-3">Upload Progress</h4>
+              <h4 className="font-medium text-gray-900 mb-3">{t.upload.progress}</h4>
               <div className="space-y-2">
                 {uploadProgress.map((file, index) => (
                   <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
@@ -247,9 +316,9 @@ const Dashboard = () => {
                       <span className="text-sm text-gray-700">{file.name}</span>
                     </div>
                     <span className="text-xs text-gray-500">
-                      {file.status === 'uploading' && 'Uploading...'}
-                      {file.status === 'success' && 'Completed'}
-                      {file.status === 'error' && 'Failed'}
+                      {file.status === 'uploading' && t.upload.status.uploading}
+                      {file.status === 'success' && t.upload.status.completed}
+                      {file.status === 'error' && t.upload.status.failed}
                     </span>
                   </div>
                 ))}
@@ -261,19 +330,53 @@ const Dashboard = () => {
         {/* Files Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">My Files</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t.files.title}</h2>
             <p className="text-sm text-gray-600 mt-1">
-              {files.length} {files.length === 1 ? 'file' : 'files'} stored
+              {files.length} {files.length === 1 ? 'file' : 'files'} {t.files.stored}
             </p>
           </div>
-          <button
-            onClick={fetchFiles}
-            disabled={loading}
-            className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            {/* Sort Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowSortMenu(!showSortMenu)}
+                className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-gray-300 bg-white"
+              >
+                <span className="text-xs font-medium">{t.files.sort}: {getSortLabel()}</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+
+              {showSortMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-300 rounded-lg shadow-lg z-20">
+                  {Object.entries(t.sortOptions).map(([key, label]) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setSortBy(key);
+                        setShowSortMenu(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${
+                        sortBy === key 
+                          ? 'bg-blue-100 text-blue-600 font-medium' 
+                          : 'text-gray-700'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={fetchFiles}
+              disabled={loading}
+              className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>{t.files.refresh}</span>
+            </button>
+          </div>
         </div>
 
         {/* Files Grid */}
@@ -284,12 +387,12 @@ const Dashboard = () => {
         ) : files.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-200">
             <FileIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No files yet</h3>
-            <p className="text-gray-600">Upload your first file to get started</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{t.files.noFiles}</h3>
+            <p className="text-gray-600">{t.files.noFilesDesc}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {files.map((file) => (
+            {getSortedFiles().map((file) => (
               <div
                 key={file.id}
                 className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-all group"
@@ -312,7 +415,7 @@ const Dashboard = () => {
                   </span>
                   <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
-                      onClick={() => handleDownload(file.id, file.name)}
+                      onClick={() => handleDownload(file.id)}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       title="Download"
                     >

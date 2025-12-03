@@ -1,4 +1,5 @@
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 import AuthPage from './components/AuthPage';
 import Dashboard from './components/Dashboard';
 
@@ -10,11 +11,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-
-      <AppContent />
-
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 
